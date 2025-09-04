@@ -14,7 +14,7 @@
     ├── Android/         # 安卓端源码 (MainActivity.java / AndroidManifest.xml / UdpServerService.java)
     ├── outputs/
     │   ├── exe/         # C++ 编译结果
-    │   │   ├── SimpleVRCToolkit.exe
+    │   │   ├── main.exe
     │   │   └── convert.exe
     │   └── android/     # 安卓 APK
     │       └── SimpleVRCToolkitUDPServer.apk
