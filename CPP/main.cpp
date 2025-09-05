@@ -54,26 +54,125 @@ void createDefaultINI(const std::string &filename) {
     file << "lowrate_string = 要被卡死了  \n#游戏卡的时候状态栏显示的文字\n";
     file << "afk_string = 亖了  \n#挂机的时候状态栏显示的文字\n";
     file << "low_battery_string = 要没电哩  \n#电量低的时候状态栏显示的文字\n";
+    file << "show_GPU_name = 0 \n#是否要显示GPU名称\n"; 
     file.close();
 }
+
+
+// 检查已有 INI 文件，补充缺失键并保留注释
+void checkAndUpdateINI(const std::string &filename) {
+    std::ifstream infile(filename);
+    std::vector<std::string> lines;
+
+    if (infile.is_open()) {
+        std::string line;
+        while (std::getline(infile, line)) {
+            lines.push_back(line);
+        }
+        infile.close();
+    } else {
+        std::cout << "INI 文件不存在，无法检查\n";
+        return;
+    }
+
+    // 默认键值及注释
+    std::map<std::string, std::pair<std::string,std::string>> defaults = {
+        {"android_state", {"2", "#2表示在程序启动时询问,0表示不询问默认选择0,1表示不询问默认选择1"}},
+        {"battery_log_state", {"2", "#2表示在程序启动时询问,0表示不询问默认选择0,1表示不询问默认选择1"}},
+        {"refresh_rate", {"2", "#刷新率"}},
+        {"charge_string", {"(充电中)", "#充电时显示的文字"}},
+        {"default_string", {"活的很好", "#默认状态下状态栏显示的文字"}},
+        {"lowrate_string", {"要被卡死了", "#游戏卡的时候状态栏显示的文字"}},
+        {"afk_string", {"亖了", "#挂机的时候状态栏显示的文字"}},
+        {"low_battery_string", {"要没电哩", "#电量低的时候状态栏显示的文字"}},
+        {"show_GPU_name", {"0", "#是否要显示GPU名称"}}
+    };
+
+    bool inGeneral = false;
+    std::map<std::string,bool> existKeys;
+
+    // 检测已有 General 节的键
+    for (auto &l : lines) {
+        std::string trimmed = l;
+        trimmed.erase(0, trimmed.find_first_not_of(" \t"));
+        if (trimmed == "[General]") {
+            inGeneral = true;
+        } else if (!trimmed.empty() && trimmed[0] == '[') {
+            inGeneral = false;
+        }
+        if (inGeneral) {
+            for (auto &kv : defaults) {
+                if (trimmed.find(kv.first + " ") == 0 || trimmed.find(kv.first + "=") == 0) {
+                    existKeys[kv.first] = true;
+                }
+            }
+        }
+    }
+
+    // 写回文件
+    std::ofstream outfile(filename);
+    if (!outfile.is_open()) {
+        std::cerr << "无法打开文件: " << filename << std::endl;
+        return;
+    }
+
+    bool generalAdded = false;
+    for (size_t i = 0; i < lines.size(); ++i) {
+        outfile << lines[i] << "\n";
+        std::string trimmed = lines[i];
+        trimmed.erase(0, trimmed.find_first_not_of(" \t"));
+
+        if (trimmed == "[General]") {
+            inGeneral = true;
+            generalAdded = true;
+        } else if (!trimmed.empty() && trimmed[0] == '[') {
+            inGeneral = false;
+        }
+
+        // 在 General 节最后一行后追加缺失键
+        if (inGeneral && i == lines.size() - 1) {
+            for (auto &kv : defaults) {
+                if (!existKeys[kv.first]) {
+                    outfile << kv.first << " = " << kv.second.first << " " << kv.second.second << "\n";
+                    std::cout << "补充缺失配置: " << kv.first << "\n";
+                }
+            }
+        }
+    }
+
+    // 如果文件原来没有 General 节，则添加 General 节及默认项
+    if (!generalAdded) {
+        outfile << "[General]\n";
+        for (auto &kv : defaults) {
+            outfile << kv.first << " = " << kv.second.first << " " << kv.second.second << "\n";
+            std::cout << "添加默认配置: " << kv.first << "\n";
+        }
+    }
+
+    outfile.close();
+    std::cout << "INI 文件检查完成，缺失项已补上。\n";
+}
+
 
 
 int main() {
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
-     std::string configFile = "config.ini";
-
-        // 尝试读取
-        INIReader reader(configFile);
-        if (reader.ParseError() < 0) {
-            std::cout << "INI 文件不存在，创建默认配置...\n";
-            createDefaultINI(configFile);
-            reader = INIReader(configFile); // 再次加载
-        }
+    std::string configFile = "config.ini";
+    // 检查并补齐缺失配置
+    checkAndUpdateINI(configFile);
+    // 尝试读取
+    INIReader reader(configFile);
+    if (reader.ParseError() < 0) {
+        std::cout << "INI 文件不存在，创建默认配置...\n";
+        createDefaultINI(configFile);
+        reader = INIReader(configFile); // 再次加载
+    }
 
     
     int android_state = reader.GetInteger("General", "android_state", 2);
     int battery_log_state = reader.GetInteger("General", "battery_log_state", 2);
+    int show_GPU_name = reader.GetInteger("General", "show_GPU_name", 0);
     float refresh_rate = reader.GetReal("General", "refresh_rate", 2.0);
     std::string charge_string = reader.Get("General", "charge_string", "(充电中)");
     std::string default_string = reader.Get("General", "default_string", "活的很好");
@@ -147,12 +246,15 @@ int main() {
     while(true){
         GPUInfo gpu = getGPUInfo(0);
         CPUInfo cpu = getCPUAndMemInfo();
-
+        std::string gpu_name = gpu.name;
         float gpu_usage = gpu.gpuUtil;
         float vram_usage = gpu.memUsed / gpu.memTotal;
         float mem_usage = cpu.memPercent;
-
-        std::string osc_msg = "显卡: " + toString(gpu_usage) + "% | 显存: " 
+        std::string osc_msg = "";
+        if(show_GPU_name == 1){
+            osc_msg = osc_msg + gpu_name + '|';
+        }
+        osc_msg += "显卡: " + toString(gpu_usage) + "% | 显存: " 
             + toString(static_cast<int>(vram_usage*100)) + "% | 内存: " + toString(mem_usage) + "%";
 
         if(android_flag && client){
