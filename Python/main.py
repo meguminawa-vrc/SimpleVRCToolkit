@@ -1,5 +1,6 @@
 #!D:\Codes\Anaconda3\envs\VRChat\python.exe
 from pythonosc import udp_client,dispatcher, osc_server
+from zeroconf import Zeroconf, ServiceBrowser, ServiceListener
 import argparse,psutil,time,socket,json,threading,subprocess
 
 #连接头显UDP服务器
@@ -100,8 +101,58 @@ def get_osc_info():
 
     return osc_msg,fake_osc_msg
 
+
+class _OSCListener(ServiceListener):
+    def __init__(self):
+        self.service_info = None
+
+    def add_service(self, zeroconf, type_, name):
+        info = zeroconf.get_service_info(type_, name)
+        if info:
+            self.service_info = info
+
+def get_vrchat_osc_ip(timeout=5.0):
+    """
+    Discover VRChat OSC service via mDNS and return (ip, port).
+    Returns (None, None) if not found within timeout.
+    """
+    zeroconf = Zeroconf()
+    listener = _OSCListener()
+    browser = ServiceBrowser(zeroconf, "_osc._udp.local.", listener)
+
+    end_time = time.time() + timeout
+    while time.time() < end_time:
+        info = listener.service_info
+        if info:
+            # 从 addresses 获取 IPv4 字节，然后转换为字符串
+            addrs = info.addresses
+            if addrs:
+                ip = socket.inet_ntoa(addrs[0])  # 使用第一个 IPv4 地址
+                port = info.port
+                zeroconf.close()
+                return ip, port
+
+            # 或者直接使用解析后的字符串
+            parsed = info.parsed_addresses()
+            if parsed:
+                ip = parsed[0]
+                port = info.port
+                zeroconf.close()
+                return ip, port
+        time.sleep(0.1)
+
+    zeroconf.close()
+    return None, None
+
+
+
 parser = argparse.ArgumentParser()
-parser.add_argument("--ip", default="127.0.0.1")
+ip, port = get_vrchat_osc_ip(timeout=5.0)
+if ip:
+    print(f"VRChat OSC 服务发现于 {ip}:{port}")
+else:
+    print("在网络中未能发现 VRChat OSC 服务，请确保 VRChat 已启用 OSC 功能。")
+parser.add_argument("--ip", default=ip)
 parser.add_argument("--port", type=int, default=9000)
 args = parser.parse_args()
 
@@ -170,6 +221,8 @@ def format_time(seconds: float) -> str:
         return f"{m}分钟{s}秒"
     else:
         return f"{seconds}秒"
+
+
 
 
 def main():

@@ -1,2 +1,2 @@
-g++ -std=c++17 main.cpp functions/osc.cpp functions/hardware.cpp functions/function.cpp functions/udp_connect.cpp functions/battery.cpp functions/INIReader.cpp functions/ini.c -Ifunctions -o main -lws2_32 -lpdh -static-libgcc -static-libstdc++ -static
+g++ -std=c++17 main.cpp functions/osc.cpp functions/hardware.cpp functions/function.cpp functions/udp_connect.cpp functions/battery.cpp functions/INIReader.cpp functions/ini.c functions/vrchat_osc_discovery.cpp -Ifunctions -o main -lws2_32 -lpdh -static-libgcc -static-libstdc++ -static
 g++ -std=c++17 convert.cpp functions/convert.cpp -Ifunctions -o convert.exe -lws2_32 -lpdh -static-libgcc -static-libstdc++ -static

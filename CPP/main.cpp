@@ -4,6 +4,7 @@
 #include "functions/udp_connect.h"
 #include "functions/battery.h"
 #include "functions/INIReader.h"
+#include "functions/vrchat_osc_discovery.h"
 #include <string>
 #include <iostream>
 #include <thread>
@@ -11,11 +12,11 @@
 #include <windows.h>
 #include <chrono>
 #include <fstream>
-#define IP "127.0.0.1"
 #define SENDPORT 9000
 #define LISTENPORT 9001
 #define ADDRESS "/chatbox/input"
 
+std::string IP = "127.0.0.1";
 // 获取布尔输入
 int getBoolInput(const std::string& prompt) {
     int input;
@@ -89,6 +90,15 @@ int main() {
 
 
     std::cout << "可以在config.ini更改设置" << std::endl;
+
+
+    auto [ip, status] = vrchat_osc::discover_ip();
+    if (status == 0) {
+        std::cout << "在 " << ip << " 上发现 OSC 服务器\n";
+        IP = ip;
+    } else {
+        std::cout << "OSC 服务器未发现，使用默认 127.0.0.1\n";
+    }
 
 
     bool android_flag = false;
@@ -208,6 +218,8 @@ int main() {
         osc_msg += " 当前状态: ";
         osc_msg += condition;
 
+
+        
         // 发送 OSC
         sendOSC(IP, SENDPORT, ADDRESS, osc_msg, true);
 
@@ -218,5 +230,8 @@ int main() {
     }
 
     if(client) delete client;
+    #ifdef OS_WINDOWS
+    WSACleanup();
+    #endif
     return 0;
 }
