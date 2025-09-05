@@ -6,6 +6,13 @@
 
 ---
 
+示例:
+<center>
+  <img width="569" height="658" alt="VRChat_2025-09-06_04-08-25" src="https://github.com/user-attachments/assets/25f5f079-fbe4-4517-b3c0-427edf8d98ce">
+</center>
+
+
+---
 ## 📂 项目结构
 
     SimpleVRCToolkit/
