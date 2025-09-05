@@ -77,15 +77,15 @@ void checkAndUpdateINI(const std::string &filename) {
 
     // 默认键值及注释
     std::map<std::string, std::pair<std::string,std::string>> defaults = {
-        {"android_state", {"2", "#2表示在程序启动时询问,0表示不询问默认选择0,1表示不询问默认选择1"}},
-        {"battery_log_state", {"2", "#2表示在程序启动时询问,0表示不询问默认选择0,1表示不询问默认选择1"}},
-        {"refresh_rate", {"2", "#刷新率"}},
-        {"charge_string", {"(充电中)", "#充电时显示的文字"}},
-        {"default_string", {"活的很好", "#默认状态下状态栏显示的文字"}},
-        {"lowrate_string", {"要被卡死了", "#游戏卡的时候状态栏显示的文字"}},
-        {"afk_string", {"亖了", "#挂机的时候状态栏显示的文字"}},
-        {"low_battery_string", {"要没电哩", "#电量低的时候状态栏显示的文字"}},
-        {"show_GPU_name", {"0", "#是否要显示GPU名称"}}
+        {"android_state", {"2", "\n#2表示在程序启动时询问,0表示不询问默认选择0,1表示不询问默认选择1"}},
+        {"battery_log_state", {"2", "\n#2表示在程序启动时询问,0表示不询问默认选择0,1表示不询问默认选择1"}},
+        {"refresh_rate", {"2", "\n#刷新率"}},
+        {"charge_string", {"(充电中)", "\n#充电时显示的文字"}},
+        {"default_string", {"活的很好", "\n#默认状态下状态栏显示的文字"}},
+        {"lowrate_string", {"要被卡死了", "\n#游戏卡的时候状态栏显示的文字"}},
+        {"afk_string", {"亖了", "\n#挂机的时候状态栏显示的文字"}},
+        {"low_battery_string", {"要没电哩", "\n#电量低的时候状态栏显示的文字"}},
+        {"show_GPU_name", {"0", "\n#是否要显示GPU名称"}}
     };
 
     bool inGeneral = false;
