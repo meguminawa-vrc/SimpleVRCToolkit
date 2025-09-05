@@ -15,7 +15,8 @@
     ├── outputs/
     │   ├── exe/         # C++ 编译结果
     │   │   ├── main.exe
-    │   │   └── convert.exe
+    │   │   ├── convert.exe
+    │   │   └── vrchat_osc_descovery.exe
     │   └── android/     # 安卓 APK
     │       └── SimpleVRCToolkitUDPServer.apk
     └── README.md
@@ -34,20 +35,21 @@
   3.如果要连接头显的 UDP 服务器，请修改代码里的 IP 地址。
 
 ### 二.使用 C++ 编译版本（无 Python 环境的用户）
-  1.下载 outputs/exe/ 下的两个文件：
-    SimpleVRCToolkit.exe
+  1.下载 outputs/exe/ 下的三个文件：
+    main.exe
     convert.exe
+    vrchat_osc_descovery.exe
 
   2.将它们放在一个单独的文件夹中运行（第一次运行会生成必要文件）。
 
-  3.运行 SimpleVRCToolkit.exe 后会进入命令行交互：
+  3.运行 main.exe 后会进入命令行交互：
     第一次运行后 会生成 config.ini，可在其中修改配置（例如默认选项、显示的文字等）。
     可以避免每次启动都重复选择。
 
 ### 三. 获取头显电池信息
   1.在头显中安装并运行 outputs/android/SimpleVRCToolkitUDPServer.apk。
 
-  2.启动 SimpleVRCToolkit.exe 或 Python 脚本时：
+  2.启动 main.exe时：
     第一个选项选择 1
     输入头显上显示的 IP 地址
 
@@ -56,7 +58,7 @@
 ### 四.电池预测（剩余关机时间）
   1.校准过程：
     先将头显充满电。
-    在 SimpleVRCToolkit.exe 第二个选项选择 1。
+    在 main.exe 第二个选项选择 1。
     它会记录放电过程中的电量曲线，数据保存在 temp.txt。
     等到头显自动关机后停止记录。
 
@@ -98,9 +100,11 @@
     lowrate_string = 要被卡死了喵   # 游戏掉帧或卡顿时显示的文字
     afk_string = 亖了               # 用户挂机（AFK）时显示的文字
     low_battery_string = 要没电哩   # 电池电量过低时显示的文字
+    show_GPU_name = 1               #是否要显示GPU名称
+
 
 
 ## 📌 注意事项
-  第一次运行 SimpleVRCToolkit.exe 建议放到一个空文件夹里，避免生成的文件混乱。
+  第一次运行 main.exe 建议放到一个空文件夹里，避免生成的文件混乱。
   安卓 APK 需要手动安装到头显上（开启开发者模式/允许未知来源应用）。
   如果使用 Python 版本，请确保 Python 环境已安装（推荐 Python 3.9+）。
