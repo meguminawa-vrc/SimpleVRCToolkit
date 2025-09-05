@@ -17,6 +17,7 @@
 #define ADDRESS "/chatbox/input"
 
 std::string IP = "127.0.0.1";
+
 // 获取布尔输入
 int getBoolInput(const std::string& prompt) {
     int input;
@@ -185,7 +186,7 @@ int main() {
     std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
 
 
-    bool is_afk = false;
+    
 
 
     std::cout << "可以在config.ini更改设置" << std::endl;
@@ -239,9 +240,13 @@ int main() {
         client = new UDPClient(android_ip, 9999);
     }
 
-    startAFKListener(LISTENPORT, [&](bool afk) {
+
+    std::atomic<bool> is_afk(false);
+    std::atomic<bool> afkRunning(true);
+
+    startAFKListener(9001, [&is_afk](bool afk){
         is_afk = afk;
-    });
+    }, afkRunning);
 
     while(true){
         GPUInfo gpu = getGPUInfo(0);
