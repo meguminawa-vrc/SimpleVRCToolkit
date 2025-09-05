@@ -89,3 +89,59 @@ BatteryInfo UDPClient::getBattery(int timeoutMs) {
     std::string rcvStr(buffer);
     return parseBatteryResponse(rcvStr);
 }
+
+std::thread start_udp_listener(int port, std::atomic<int>& heart_rate) {
+    return std::thread([port, &heart_rate]() {
+        // 初始化 Winsock
+        WSADATA wsaData;
+        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+            std::cerr << "WSAStartup failed" << std::endl;
+            return;
+        }
+
+        // 创建 UDP socket
+        SOCKET sock = socket(AF_INET, SOCK_DGRAM, 0);
+        if (sock == INVALID_SOCKET) {
+            std::cerr << "Socket creation failed" << std::endl;
+            WSACleanup();
+            return;
+        }
+
+        // 绑定端口
+        sockaddr_in serverAddr{};
+        serverAddr.sin_family = AF_INET;
+        serverAddr.sin_addr.s_addr = INADDR_ANY; // 监听所有地址
+        serverAddr.sin_port = htons(port);
+
+        if (bind(sock, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
+            std::cerr << "Bind failed" << std::endl;
+            closesocket(sock);
+            WSACleanup();
+            return;
+        }
+
+        std::cout << "UDP listener started on port " << port << std::endl;
+
+        char buffer[1024];
+        sockaddr_in clientAddr{};
+        int clientAddrLen = sizeof(clientAddr);
+
+        while (true) {
+            int bytesReceived = recvfrom(sock, buffer, sizeof(buffer) - 1, 0,
+                                         (sockaddr*)&clientAddr, &clientAddrLen);
+            if (bytesReceived > 0) {
+                buffer[bytesReceived] = '\0';  // 保证字符串结尾
+                try {
+                    int value = std::stoi(buffer);  // 转换为整数
+                    heart_rate = value;             // 更新全局变量
+                } catch (...) {
+                    std::cerr << "Invalid data received: " << buffer << std::endl;
+                }
+            }
+        }
+
+        // 清理
+        closesocket(sock);
+        WSACleanup();
+    });
+}

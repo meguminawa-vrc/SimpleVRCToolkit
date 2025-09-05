@@ -2,10 +2,12 @@
 from pythonosc import udp_client,dispatcher, osc_server
 from zeroconf import Zeroconf, ServiceBrowser, ServiceListener
 import argparse,psutil,time,socket,json,threading,subprocess
-
+import heartrate
 #连接头显UDP服务器
-UDP_IP = "10.122.199.35"  # 真机局域网 IP
+UDP_IP = "0.0.0.0"  # 头显局域网 IP
 UDP_PORT = 9999            # UDP 服务器监听端口
+HEART_RATE_FLAG = True #是否开启心率检测
+HEART_PORT = 10001
 with open('battery.txt','w') as b:
         b.write('')
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -16,6 +18,35 @@ sock.settimeout(5)  # 超时时间 5 秒
 start_time = time.time()  #脚本启动时的时间戳
 
 is_afk= False  #afk状态,global
+heart_rate = 0 #心率,global
+
+def start_udp_listener(listen_port=10001):
+    """
+    启动UDP监听线程，当收到消息时更新全局变量 `heart_rate`
+    listen_port: 本地监听端口
+    """
+    global heart_rate
+
+    def listener_thread():
+        global heart_rate
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.bind(("0.0.0.0", listen_port))
+        print(f"UDP listener started on port {listen_port}")
+
+        while True:
+            data, addr = sock.recvfrom(1024)  # 接收1024字节以内的消息
+            try:
+                # 尝试解析为字符串
+                heart_rate = data.decode("utf-8")
+            except Exception:
+                # 若解析失败，直接保存原始字节
+                heart_ratee = data
+            print(f"Received from {addr}: {heart_rate}")
+
+    thread = threading.Thread(target=listener_thread, daemon=True)
+    thread.start()
+    return thread
+
 
 def afk_handler(addr, value):
     global is_afk
@@ -99,6 +130,8 @@ def get_osc_info():
     else:
         osc_msg += f" 还能使用 {predict_time(battery)['formatted']} "
 
+    if HEART_RATE_FLAG:
+        osc_msg += f" |当前心率 ❤{heart_rate}"
     return osc_msg,fake_osc_msg
 
 
@@ -151,6 +184,7 @@ ip, port = get_vrchat_osc_ip(timeout=5.0)
 if ip:
     print(f"VRChat OSC 服务发现于 {ip}:{port}")
 else:
+    ip = "127.0.0.1"
     print("在网络中未能发现 VRChat OSC 服务，请确保 VRChat 已启用 OSC 功能。")
 parser.add_argument("--ip", default=ip)
 parser.add_argument("--port", type=int, default=9000)
@@ -229,6 +263,10 @@ def main():
     # 启动监听线程
     listener_thread = threading.Thread(target=start_afk_listener, daemon=True)
     listener_thread.start()
+    if HEART_RATE_FLAG:
+        listener_thread_heart = threading.Thread(target=start_udp_listener, daemon=True,args=[HEART_PORT,])
+        listener_thread_heart.start()
+        heartrate.start_heart_monitor(HEART_PORT)
     while True:
         print(f'afk:{is_afk}\n')
         osc_msg,fake_osc_msg = get_osc_info()

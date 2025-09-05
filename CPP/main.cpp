@@ -12,6 +12,7 @@
 #include <windows.h>
 #include <chrono>
 #include <fstream>
+#include <cstdlib>
 #define SENDPORT 9000
 #define LISTENPORT 9001
 #define ADDRESS "/chatbox/input"
@@ -56,6 +57,10 @@ void createDefaultINI(const std::string &filename) {
     file << "afk_string = 亖了  \n#挂机的时候状态栏显示的文字\n";
     file << "low_battery_string = 要没电哩  \n#电量低的时候状态栏显示的文字\n";
     file << "show_GPU_name = 0 \n#是否要显示GPU名称\n"; 
+    file << "android_ip = null \n#头显端再局域网内的ip,若没填则再程序运行时询问,若填了则运行时自动使用这个地址\n";
+    file << "heart_rate_flag = 0  \n#是否要启用心率检测,0为不启用1为启用,若启用则要使用hyperrate开启心率广播并且填入session_id\n";
+    file << "heart_rate_port = 10001  \n#python转发心率广播的UDP端口\n";
+    file << "heart_rate_session_id = 0   \n#hyperrate开启心率广播后显示的sessionid\n";
     file.close();
 }
 
@@ -86,7 +91,11 @@ void checkAndUpdateINI(const std::string &filename) {
         {"lowrate_string", {"要被卡死了", "\n#游戏卡的时候状态栏显示的文字"}},
         {"afk_string", {"亖了", "\n#挂机的时候状态栏显示的文字"}},
         {"low_battery_string", {"要没电哩", "\n#电量低的时候状态栏显示的文字"}},
-        {"show_GPU_name", {"0", "\n#是否要显示GPU名称"}}
+        {"show_GPU_name", {"0", "\n#是否要显示GPU名称"}},
+        {"android_ip", {"null", "\n#头显端再局域网内的ip,若没填则再程序运行时询问,若填了则运行时自动使用这个地址"}},
+        {"heart_rate_flag", {"0", "\n#是否要启用心率检测,0为不启用1为启用,若启用则要使用hyperrate开启心率广播并且填入session_id"}},
+        {"heart_rate_port", {"10001", "\n#python转发心率广播的UDP端口"}},
+        {"heart_rate_session_id", {"0", "\n#hyperrate开启心率广播后显示的sessionid"}},
     };
 
     bool inGeneral = false;
@@ -180,13 +189,16 @@ int main() {
     std::string lowrate_string = reader.Get("General", "lowrate_string", "要被卡死了");
     std::string afk_string = reader.Get("General", "afk_string", "亖了");
     std::string low_battery_string = reader.Get("General", "low_battery_string", "要没电哩");
+    std::string android_ip = reader.Get("General", "android_ip", "null");
+    int heart_rate_flag = reader.GetInteger("General", "heart_rate_flag", 0);
+    int heart_rate_port = reader.GetInteger("General", "heart_rate_port", 10001);
+    int heart_rate_session_id = reader.GetInteger("General", "android_state", 0);
+
 
     std::ofstream file_t("temp.txt", std::ios::out);
     
+
     std::chrono::steady_clock::time_point start_time = std::chrono::steady_clock::now();
-
-
-    
 
 
     std::cout << "可以在config.ini更改设置" << std::endl;
@@ -230,24 +242,36 @@ int main() {
 
 
     int battery_pct;
-    std::string android_ip;
     UDPClient* client = nullptr;
 
 
     if(android_flag){
-        std::cout << "请输入头显端ip地址: ";
-        std::cin >> android_ip;
-        client = new UDPClient(android_ip, 9999);
+        if(android_ip == "null"){
+            std::cout << "请输入头显端ip地址: ";
+            std::cin >> android_ip;
+            client = new UDPClient(android_ip, 9999);
+        }
+        else{
+            android_ip = android_ip;
+            client = new UDPClient(android_ip, 9999);
+        }
     }
 
 
     std::atomic<bool> is_afk(false);
     std::atomic<bool> afkRunning(true);
+    std::atomic<int> heart_rate{0}; 
+
 
     startAFKListener(9001, [&is_afk](bool afk){
         is_afk = afk;
     }, afkRunning);
 
+    if(heart_rate_flag == 1){
+        system("start heart_beat_udp_server.exe");
+        auto listener = start_udp_listener(heart_rate_port, heart_rate);
+        listener.detach(); // 后台运行
+    }
     while(true){
         GPUInfo gpu = getGPUInfo(0);
         CPUInfo cpu = getCPUAndMemInfo();
@@ -326,7 +350,9 @@ int main() {
         osc_msg += condition;
 
 
-        
+        if(heart_rate_flag == 1){
+            osc_msg = osc_msg + "| 当前心率: "+ toString(heart_rate.load());
+        }
         // 发送 OSC
         sendOSC(IP, SENDPORT, ADDRESS, osc_msg, true);
 
