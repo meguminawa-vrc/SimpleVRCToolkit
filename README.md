@@ -8,7 +8,7 @@
 
 示例:
 <center>
-  <img width="569" height="658" alt="VRChat_2025-09-06_04-08-25" src="https://github.com/user-attachments/assets/25f5f079-fbe4-4517-b3c0-427edf8d98ce">
+  <img width="569" height="658" alt="VRChat_2025-09-06_04-08-25" src="https://github.com/user-attachments/assets/9ee6b23c-c76f-4969-b334-5e2e6cfa4307">
 </center>
 
 
@@ -133,6 +133,7 @@
     heart_rate_flag = 0             #是否要启用心率检测,0为不启用1为启用,若启用则要使用hyperrate开启心率广播并且填入session_id
     heart_rate_port = 10001         #python转发心率广播的UDP端口
     heart_rate_session_id = 0       #hyperrate开启心率广播后显示的sessionid
+    MINI_BACKGROUND_FLAG = 1        #1为缩小聊天框背景,0为默认背景
     
 
 
