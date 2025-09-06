@@ -4,10 +4,11 @@ from zeroconf import Zeroconf, ServiceBrowser, ServiceListener
 import argparse,psutil,time,socket,json,threading,subprocess
 import heartrate
 #连接头显UDP服务器
-UDP_IP = "0.0.0.0"  # 头显局域网 IP
+UDP_IP = "10.122.199.35"  # 头显局域网 IP
 UDP_PORT = 9999            # UDP 服务器监听端口
 HEART_RATE_FLAG = True #是否开启心率检测
 HEART_PORT = 10001
+MINI_BACKGROUND_FLAG = True #是否最小化聊天框背景
 with open('battery.txt','w') as b:
         b.write('')
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -130,8 +131,12 @@ def get_osc_info():
     else:
         osc_msg += f" 还能使用 {predict_time(battery)['formatted']} "
 
+    
     if HEART_RATE_FLAG:
         osc_msg += f" |当前心率 ❤{heart_rate}"
+
+    if MINI_BACKGROUND_FLAG :
+        osc_msg += "\u0003\u001f"
     return osc_msg,fake_osc_msg
 
 

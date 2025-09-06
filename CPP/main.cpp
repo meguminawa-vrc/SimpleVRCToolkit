@@ -60,7 +60,8 @@ void createDefaultINI(const std::string &filename) {
     file << "android_ip = null \n#头显端再局域网内的ip,若没填则再程序运行时询问,若填了则运行时自动使用这个地址\n";
     file << "heart_rate_flag = 0  \n#是否要启用心率检测,0为不启用1为启用,若启用则要使用hyperrate开启心率广播并且填入session_id\n";
     file << "heart_rate_port = 10001  \n#python转发心率广播的UDP端口\n";
-    file << "heart_rate_session_id = 0   \n#hyperrate开启心率广播后显示的sessionid\n";
+    file << "heart_rate_session_id = null   \n#hyperrate开启心率广播后显示的sessionid\n";
+    file << "MINI_BACKGROUND_FLAG = 1   \n#1为缩小聊天框背景\n";
     file.close();
 }
 
@@ -95,7 +96,8 @@ void checkAndUpdateINI(const std::string &filename) {
         {"android_ip", {"null", "\n#头显端再局域网内的ip,若没填则再程序运行时询问,若填了则运行时自动使用这个地址"}},
         {"heart_rate_flag", {"0", "\n#是否要启用心率检测,0为不启用1为启用,若启用则要使用hyperrate开启心率广播并且填入session_id"}},
         {"heart_rate_port", {"10001", "\n#python转发心率广播的UDP端口"}},
-        {"heart_rate_session_id", {"0", "\n#hyperrate开启心率广播后显示的sessionid"}},
+        {"heart_rate_session_id", {"null", "\n#hyperrate开启心率广播后显示的sessionid"}},
+        {"MINI_BACKGROUND_FLAG", {"1", "\n#1为缩小聊天框背景"}},
     };
 
     bool inGeneral = false;
@@ -192,7 +194,8 @@ int main() {
     std::string android_ip = reader.Get("General", "android_ip", "null");
     int heart_rate_flag = reader.GetInteger("General", "heart_rate_flag", 0);
     int heart_rate_port = reader.GetInteger("General", "heart_rate_port", 10001);
-    int heart_rate_session_id = reader.GetInteger("General", "android_state", 0);
+    std::string heart_rate_session_id = reader.Get("General", "heart_rate_session_id", "null");
+    int MINI_BACKGROUND_FLAG = reader.GetInteger("General", "MINI_BACKGROUND_FLAG", 1);
 
 
     std::ofstream file_t("temp.txt", std::ios::out);
@@ -301,17 +304,17 @@ int main() {
                         Battery battery("battery_prediction.json");
 
                         if (!battery.exists()) {
-                            std::cerr << "[ERROR] 文件 battery_prediction.json 不存在！" << std::endl;
+                            std::cerr << "\n[ERROR] 文件 battery_prediction.json 不存在！" << std::endl;
                         }
                         else if (!battery.loadJson()) {
-                            std::cerr << "[ERROR] JSON 解析失败，请检查文件内容。" << std::endl;
+                            std::cerr << "\n[ERROR] JSON 解析失败，请检查文件内容。" << std::endl;
                         }
                         else {
                             std::string remaining = battery.getRemainingTime(info.battery);
                             osc_msg += " | 还能使用 " + remaining;
                         }
                     } catch(const std::exception& e) {
-                        std::cerr << "[EXCEPTION] 解析 battery_prediction.json 出错: " << e.what() << std::endl;
+                        std::cerr << "\n[EXCEPTION] 解析 battery_prediction.json 出错: " << e.what() << std::endl;
                         osc_msg += " | 电池信息异常";
                     }
                 }
@@ -325,12 +328,12 @@ int main() {
                         file << toString(time_sec) << "s " 
                             << toString(info.battery) << "%\n";
                     } else {
-                        std::cerr << "无法打开 temp.txt 进行写入" << std::endl;
+                        std::cerr << "\n无法打开 temp.txt 进行写入" << std::endl;
                     }
                 }
             } 
             catch(const std::exception& e) {
-                std::cerr << "[EXCEPTION] 获取设备电池信息失败: " << e.what() << std::endl;
+                std::cerr << "\n[EXCEPTION] 获取设备电池信息失败: " << e.what() << std::endl;
                 osc_msg += " | 电池信息异常";
             }
     
@@ -354,6 +357,10 @@ int main() {
             osc_msg = osc_msg + "| 当前心率: "+ toString(heart_rate.load());
         }
         // 发送 OSC
+
+        if(MINI_BACKGROUND_FLAG == 1){
+            osc_msg += "\u0003\u001f";
+        }
         sendOSC(IP, SENDPORT, ADDRESS, osc_msg, true);
 
         // 输出到控制台

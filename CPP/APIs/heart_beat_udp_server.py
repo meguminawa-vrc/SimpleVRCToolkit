@@ -7,6 +7,7 @@ from selenium.webdriver.edge.options import Options
 from selenium.webdriver.edge.service import Service
 import tempfile
 import configparser
+import sys
 
 
 config = configparser.ConfigParser()
@@ -15,7 +16,7 @@ config.read('config.ini', encoding='utf-8')
 
 heart_rate_flag = int(config['General'].get('heart_rate_flag'))
 udp_port = int(config['General'].get('heart_rate_port'))
-heart_rate_session_id = int(config['General'].get('heart_rate_session_id'))
+heart_rate_session_id = config['General'].get('heart_rate_session_id')
 
 
 HEART_BEAT_URL= f'https://app.hyperate.io/{heart_rate_session_id}'
@@ -58,7 +59,8 @@ def start_heart_monitor(udp_port=10001):
                     last_value = hr_text
                     # 发送到本地 UDP
                     sock.sendto(hr_text.encode('utf-8'), udp_address)
-                    print(f"Heart rate: {hr_text} -> sent via UDP:{udp_port}", flush=True)
+                    sys.stdout.write(f"\rHeart rate: {hr_text} -> sent via UDP:{udp_port}   ")
+                    sys.stdout.flush()
             except Exception as e:
                 # 忽略元素还没加载的异常
                 pass
