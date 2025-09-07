@@ -65,7 +65,7 @@ void createDefaultINI(const std::string &filename) {
     file << "MINI_BACKGROUND_FLAG = 1   \n#1为缩小聊天框背景0为维持默认背景\n";
     file << "osc_msg_format = 显卡: {gpu_usage}% | 显存: {vram_usage}% | 内存: {mem_usage}% |当前状态:{condition}   \n#自定义OSC消息格式,用{}框起来填入参数即可,其中目前可选的参数有GPU_name,显卡名称,gpu_usage,显卡占用,mem_usage,内存占用,battery_pct,头显剩余电量,battery_str,低电量时显示的文字,condition,状态文字,heart_rate,心率,\\n,换行符,当使用参数时请确认参数能够被获取,否则不会起效或者使用默认数据\n";
     file << "low_rate_flag = 98   \n#显卡占用超过这个数值就显示游戏卡的状态\n";
-    file << "high_heart_rate_flag = 100   \n#心率超过这个数值就显示高心率的状态\n";
+    file << "high_heart_rate_flag = 100   \n#心率超过设定数值就显示高心率的状态\n";
     file.close();
 }
 
@@ -105,7 +105,7 @@ void checkAndUpdateINI(const std::string &filename) {
         {"osc_msg_format", {"显卡: {gpu_usage}% | 显存: {vram_usage}% | 内存: {mem_usage}% |当前状态:{condition}", "\n#自定义OSC消息格式,用{}框起来填入参数即可,其中目前可选的参数有GPU_name,显卡名称,gpu_usage,显卡占用,mem_usage,内存占用,battery_pct,头显剩余电量,battery_str,低电量时显示的文字,condition,状态文字,heart_rate,心率,\\n,换行符,当使用参数时请确认参数能够被获取,否则不会起效或者使用默认数据"}},
         {"low_rate_flag", {"98", "\n#显卡占用超过这个数值就显示游戏卡的状态"}},
         {"high_heart_rate_flag", {"100", "\n#心率超过这个数值就显示高心率的状态"}},
-        {"high_heart_rate_string", {"心动了dokidoki", "\n#心率超过这个数值状态栏显示的文字"}},
+        {"high_heart_rate_string", {"心动了dokidoki", "\n#心率超过设定数值状态栏显示的文字"}},
     };
 
     bool inGeneral = false;
