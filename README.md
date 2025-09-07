@@ -124,6 +124,8 @@
     charge_string = (充电中)        # 设备正在充电时显示的文字
     default_string = 活的很好       # 默认状态下显示的文字
     lowrate_string = 要被卡死了喵   # 游戏掉帧或卡顿时显示的文字
+    high_heart_rate_string = 心动了dokidoki
+    #心率超过设定数值状态栏显示的文字
     afk_string = 亖了               # 用户挂机（AFK）时显示的文字
     low_battery_string = 要没电哩   # 电池电量过低时显示的文字
 
@@ -134,6 +136,11 @@
     heart_rate_port = 10001         #python转发心率广播的UDP端口
     heart_rate_session_id = 0       #hyperrate开启心率广播后显示的sessionid
     MINI_BACKGROUND_FLAG = 1        #1为缩小聊天框背景,0为默认背景
+    osc_msg_format = 显卡: {gpu_usage}% | 显存: {vram_usage}%  头显电量剩余: {battery_pct}% {battery_str} 当前状态:{condition}| 当前心率: {heart_rate} 
+    #自定义OSC消息格式,用{}框起来填入参数即可,其中目前可选的参数有gpu_name,显卡名称,gpu_usage,显卡占用,mem_usage,内存占用,battery_pct,头显剩余电量,battery_str,低电量时显示的文字,condition,状态文字,heart_rate,心率,\n,换行符,当使用参数时请确认参数能够被获取,否则不会起效或者使用默认数据
+    high_heart_rate_flag = 100      #心率超过这个数值就显示高心率的状态
+    low_rate_flag = 98              #显卡占用超过这个数值就显示游戏卡的状态
+
     
 
 
