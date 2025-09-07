@@ -293,7 +293,7 @@ int main() {
         CPUInfo cpu = getCPUAndMemInfo();
         std::string gpu_name = gpu.name;
         float gpu_usage = gpu.gpuUtil;
-        float vram_usage = static_cast<int>(gpu.memUsed / gpu.memTotal);
+        float vram_usage = static_cast<int>(gpu.memUsed*100 / gpu.memTotal);
         float mem_usage = cpu.memPercent;
         int battery_pct = 0;
         std::string battery_str = "";
