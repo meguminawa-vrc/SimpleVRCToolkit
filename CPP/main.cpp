@@ -56,12 +56,16 @@ void createDefaultINI(const std::string &filename) {
     file << "lowrate_string = 要被卡死了  \n#游戏卡的时候状态栏显示的文字\n";
     file << "afk_string = 亖了  \n#挂机的时候状态栏显示的文字\n";
     file << "low_battery_string = 要没电哩  \n#电量低的时候状态栏显示的文字\n";
+    file << "high_heart_rate_string = 心动了dokidoki   \n#心率超过这个数值状态栏显示的文字\n";
     file << "show_GPU_name = 0 \n#是否要显示GPU名称\n"; 
-    file << "android_ip = null \n#头显端再局域网内的ip,若没填则再程序运行时询问,若填了则运行时自动使用这个地址\n";
+    file << "android_ip = null \n#头显端在局域网内的ip,若没填则再程序运行时询问,若填了则运行时自动使用这个地址\n";
     file << "heart_rate_flag = 0  \n#是否要启用心率检测,0为不启用1为启用,若启用则要使用hyperrate开启心率广播并且填入session_id\n";
     file << "heart_rate_port = 10001  \n#python转发心率广播的UDP端口\n";
     file << "heart_rate_session_id = null   \n#hyperrate开启心率广播后显示的sessionid\n";
-    file << "MINI_BACKGROUND_FLAG = 1   \n#1为缩小聊天框背景\n";
+    file << "MINI_BACKGROUND_FLAG = 1   \n#1为缩小聊天框背景0为维持默认背景\n";
+    file << "osc_msg_format = 显卡: {gpu_usage}% | 显存: {vram_usage}% | 内存: {mem_usage}% |当前状态:{condition}   \n#自定义OSC消息格式,用{}框起来填入参数即可,其中目前可选的参数有GPU_name,显卡名称,gpu_usage,显卡占用,mem_usage,内存占用,battery_pct,头显剩余电量,battery_str,低电量时显示的文字,condition,状态文字,heart_rate,心率,\\n,换行符,当使用参数时请确认参数能够被获取,否则不会起效或者使用默认数据\n";
+    file << "low_rate_flag = 98   \n#显卡占用超过这个数值就显示游戏卡的状态\n";
+    file << "high_heart_rate_flag = 100   \n#心率超过这个数值就显示高心率的状态\n";
     file.close();
 }
 
@@ -93,11 +97,15 @@ void checkAndUpdateINI(const std::string &filename) {
         {"afk_string", {"亖了", "\n#挂机的时候状态栏显示的文字"}},
         {"low_battery_string", {"要没电哩", "\n#电量低的时候状态栏显示的文字"}},
         {"show_GPU_name", {"0", "\n#是否要显示GPU名称"}},
-        {"android_ip", {"null", "\n#头显端再局域网内的ip,若没填则再程序运行时询问,若填了则运行时自动使用这个地址"}},
+        {"android_ip", {"null", "\n#头显端在局域网内的ip,若没填则再程序运行时询问,若填了则运行时自动使用这个地址"}},
         {"heart_rate_flag", {"0", "\n#是否要启用心率检测,0为不启用1为启用,若启用则要使用hyperrate开启心率广播并且填入session_id"}},
         {"heart_rate_port", {"10001", "\n#python转发心率广播的UDP端口"}},
         {"heart_rate_session_id", {"null", "\n#hyperrate开启心率广播后显示的sessionid"}},
         {"MINI_BACKGROUND_FLAG", {"1", "\n#1为缩小聊天框背景"}},
+        {"osc_msg_format", {"显卡: {gpu_usage}% | 显存: {vram_usage}% | 内存: {mem_usage}% |当前状态:{condition}", "\n#自定义OSC消息格式,用{}框起来填入参数即可,其中目前可选的参数有GPU_name,显卡名称,gpu_usage,显卡占用,mem_usage,内存占用,battery_pct,头显剩余电量,battery_str,低电量时显示的文字,condition,状态文字,heart_rate,心率,\\n,换行符,当使用参数时请确认参数能够被获取,否则不会起效或者使用默认数据"}},
+        {"low_rate_flag", {"98", "\n#显卡占用超过这个数值就显示游戏卡的状态"}},
+        {"high_heart_rate_flag", {"100", "\n#心率超过这个数值就显示高心率的状态"}},
+        {"high_heart_rate_string", {"心动了dokidoki", "\n#心率超过这个数值状态栏显示的文字"}},
     };
 
     bool inGeneral = false;
@@ -196,6 +204,11 @@ int main() {
     int heart_rate_port = reader.GetInteger("General", "heart_rate_port", 10001);
     std::string heart_rate_session_id = reader.Get("General", "heart_rate_session_id", "null");
     int MINI_BACKGROUND_FLAG = reader.GetInteger("General", "MINI_BACKGROUND_FLAG", 1);
+    std::string osc_msg_format = reader.Get("General", "osc_msg_format", "显卡: {gpu_usage}% | 显存: {vram_usage}% | 内存: {mem_usage}% |当前状态:{condition}");
+    std::cout << osc_msg_format << std::endl;
+    int low_rate_flag = reader.GetInteger("General", "low_rate_flag", 98);
+    int high_heart_rate_flag = reader.GetInteger("General", "high_heart_rate_flag", 100);
+    std::string high_heart_rate_string = reader.Get("General", "high_heart_rate_string", "心动了dokidoki");
 
 
     std::ofstream file_t("temp.txt", std::ios::out);
@@ -263,7 +276,7 @@ int main() {
 
     std::atomic<bool> is_afk(false);
     std::atomic<bool> afkRunning(true);
-    std::atomic<int> heart_rate{0}; 
+    std::atomic<int> heart_rate_data{0}; 
 
 
     startAFKListener(9001, [&is_afk](bool afk){
@@ -272,35 +285,28 @@ int main() {
 
     if(heart_rate_flag == 1){
         system("start heart_beat_udp_server.exe");
-        auto listener = start_udp_listener(heart_rate_port, heart_rate);
+        auto listener = start_udp_listener(heart_rate_port, heart_rate_data);
         listener.detach(); // 后台运行
-    }
+        }
     while(true){
         GPUInfo gpu = getGPUInfo(0);
         CPUInfo cpu = getCPUAndMemInfo();
         std::string gpu_name = gpu.name;
         float gpu_usage = gpu.gpuUtil;
-        float vram_usage = gpu.memUsed / gpu.memTotal;
+        float vram_usage = static_cast<int>(gpu.memUsed / gpu.memTotal);
         float mem_usage = cpu.memPercent;
-        std::string osc_msg = "";
-        if(show_GPU_name == 1){
-            osc_msg = osc_msg + gpu_name + '|';
-        }
-        osc_msg += "显卡: " + toString(gpu_usage) + "% | 显存: " 
-            + toString(static_cast<int>(vram_usage*100)) + "% | 内存: " + toString(mem_usage) + "%";
-
+        int battery_pct = 0;
+        std::string battery_str = "";
         if(android_flag && client){
             try {
                 BatteryInfo info = client->getBattery(2000);
                 battery_pct = info.battery;
-                osc_msg += " | 头显电量剩余: " + std::to_string(info.battery) + "%";
-
                 if(info.chargeState){
-                    osc_msg += " ";
-                    osc_msg += charge_string;
+                    battery_str = charge_string;
                 }
                 else {
                     try {
+                        battery_str = "";
                         Battery battery("battery_prediction.json");
 
                         if (!battery.exists()) {
@@ -311,11 +317,11 @@ int main() {
                         }
                         else {
                             std::string remaining = battery.getRemainingTime(info.battery);
-                            osc_msg += " | 还能使用 " + remaining;
+                            battery_str = "还能使用 " + remaining;
                         }
                     } catch(const std::exception& e) {
                         std::cerr << "\n[EXCEPTION] 解析 battery_prediction.json 出错: " << e.what() << std::endl;
-                        osc_msg += " | 电池信息异常";
+                        battery_str = "电池信息异常";
                     }
                 }
                 if (battery_log_flag) {
@@ -334,12 +340,21 @@ int main() {
             } 
             catch(const std::exception& e) {
                 std::cerr << "\n[EXCEPTION] 获取设备电池信息失败: " << e.what() << std::endl;
-                osc_msg += " | 电池信息异常";
+                battery_str = "电池信息异常";
             }
     
         }
+        int heart_rate = 0;
+        if(heart_rate_flag == 1){
+            heart_rate = (heart_rate_data.load());
+        }
+
+
         std::string condition = default_string;
-        if(gpu.gpuUtil >= 98){
+        if (heart_rate >= high_heart_rate_flag){
+            condition = high_heart_rate_string;
+        }
+        if(gpu.gpuUtil >= low_rate_flag){
             condition = lowrate_string;
         }
         if(is_afk){
@@ -349,20 +364,26 @@ int main() {
             condition += ",";
             condition += low_battery_string;
         }
-        osc_msg += " 当前状态: ";
-        osc_msg += condition;
 
-
-        if(heart_rate_flag == 1){
-            osc_msg = osc_msg + "| 当前心率: "+ toString(heart_rate.load());
-        }
+        
         // 发送 OSC
 
+        std::unordered_map<std::string, std::string> params;
+        params["gpu_name"] = toString(gpu_name);
+        params["gpu_usage"] = toString(gpu_usage);
+        params["vram_usage"] = toString(vram_usage);
+        params["mem_usage"] = toString(mem_usage);
+        params["battery_pct"] = toString(battery_pct);
+        params["battery_str"] = toString(battery_str);
+        params["condition"] = toString(condition);
+        params["heart_rate"] = toString(heart_rate);
+        std::string osc_msg = formatOSCMessage(osc_msg_format, params);
+        
         if(MINI_BACKGROUND_FLAG == 1){
             osc_msg += "\u0003\u001f";
         }
         sendOSC(IP, SENDPORT, ADDRESS, osc_msg, true);
-
+        
         // 输出到控制台
         printDataLine(osc_msg);
 
