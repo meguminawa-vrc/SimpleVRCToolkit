@@ -310,7 +310,7 @@ int main() {
                         Battery battery("battery_prediction.json");
 
                         if (!battery.exists()) {
-                            std::cerr << "\n[ERROR] 文件 battery_prediction.json 不存在！" << std::endl;
+                            //std::cerr << "\n[ERROR] 文件 battery_prediction.json 不存在！" << std::endl;
                         }
                         else if (!battery.loadJson()) {
                             std::cerr << "\n[ERROR] JSON 解析失败，请检查文件内容。" << std::endl;
